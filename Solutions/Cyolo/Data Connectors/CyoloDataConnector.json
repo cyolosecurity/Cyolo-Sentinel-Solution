@@ -1,0 +1,55 @@
+
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspace": { "type": "string" },
+    "workspace-location": { "type": "string" },
+    "username": { "type": "securestring" },
+    "password": { "type": "securestring" },
+    "apiEndpoint": {
+      "type": "string",
+      "defaultValue": "https://console.stg.cyolo.io/v1/activity_log?_count=100"
+    },
+    "dataCollectionEndpoint": { "type": "string" },
+    "dataCollectionRuleImmutableId": { "type": "string" }
+  },
+  "variables": {
+    "dataConnectorId": "CyoloDataConnector",
+    "logAnalyticsTableId": "CyoloTable_CL_CL",
+    "solutionVersion": "1.0.0"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectors",
+      "apiVersion": "2022-11-01-preview",
+      "name": "[concat(parameters('workspace'), '/Microsoft.SecurityInsights/', variables('dataConnectorId'))]",
+      "location": "[parameters('workspace-location')]",
+      "kind": "RestApiPoller",
+      "properties": {
+        "connectorDefinitionName": "[variables('dataConnectorId')]",
+        "dcrConfig": {
+          "streamName": "[variables('logAnalyticsTableId')]",
+          "dataCollectionEndpoint": "[parameters('dataCollectionEndpoint')]",
+          "dataCollectionRuleImmutableId": "[parameters('dataCollectionRuleImmutableId')]"
+        },
+        "auth": {
+          "type": "Basic",
+          "userName": "[parameters('username')]",
+          "password": "[parameters('password')]"
+        },
+        "request": {
+          "apiEndpoint": "[parameters('apiEndpoint')]",
+          "httpMethod": "GET",
+          "headers": { "Accept": "application/json" },
+          "rateLimitQPS": 10,
+          "queryWindowInMin": 5,
+          "retryCount": 3,
+          "timeoutInSeconds": 60
+        },
+        "response": { "eventsJsonPaths": ["$.data[*]"] },
+        "isActive": true
+      }
+    }
+  ]
+}

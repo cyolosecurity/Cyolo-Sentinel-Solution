@@ -1,0 +1,16 @@
+{
+  "displayName": "Cyolo \u2013 Anonymous access to sensitive application",
+  "description": "Detects anonymous user accessing critical or sensitive Cyolo applications.",
+  "kind": "Scheduled",
+  "query": "CyoloTable_CL_CL\n| where subject_name == 'anonymous' and object_name has_any ('prod-', 'finance', 'sensitive')",
+  "severity": "Medium",
+  "enabled": true,
+  "suppressionEnabled": false,
+  "triggerOperator": "GreaterThan",
+  "triggerThreshold": 0,
+  "queryFrequency": "PT1H",
+  "queryPeriod": "PT1H",
+  "tactics": [
+    "InitialAccess"
+  ]
+}
