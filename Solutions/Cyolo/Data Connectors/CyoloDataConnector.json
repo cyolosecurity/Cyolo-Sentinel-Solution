@@ -40,7 +40,7 @@
     },
     "apiEndpoint": {
       "type": "string",
-      "defaultValue": "https://console.stg.cyolo.io/v1/activity_log?_count=2",
+      "defaultValue": "https://console.stg.cyolo.io/v1/activity_log",
       "metadata": {
         "description": "Cyolo API endpoint"
       }
@@ -77,6 +77,12 @@
           "timeoutInSeconds": 60,
           "headers": {
             "Accept": "application/json"
+          },
+          "pagination": {
+            "type": "Page",
+            "pageParamName": "_page",
+            "startPage": 1,
+            "maxPages": 10000
           }
         },
         "response": {
