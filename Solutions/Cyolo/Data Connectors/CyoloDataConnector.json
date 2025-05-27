@@ -1,23 +1,53 @@
-
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "workspace": { "type": "string" },
-    "workspace-location": { "type": "string" },
-    "username": { "type": "securestring" },
-    "password": { "type": "securestring" },
+    "workspace": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace name"
+      }
+    },
+    "workspace-location": {
+      "type": "string",
+      "metadata": {
+        "description": "Location of the Log Analytics workspace"
+      }
+    },
+    "username": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cyolo API username"
+      }
+    },
+    "password": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Cyolo API password"
+      }
+    },
+    "dataCollectionEndpoint": {
+      "type": "string",
+      "metadata": {
+        "description": "Data collection endpoint for the workspace"
+      }
+    },
+    "dataCollectionRuleImmutableId": {
+      "type": "string",
+      "metadata": {
+        "description": "Immutable ID of the Data Collection Rule"
+      }
+    },
     "apiEndpoint": {
       "type": "string",
-      "defaultValue": "https://console.stg.cyolo.io/v1/activity_log?_count=100"
-    },
-    "dataCollectionEndpoint": { "type": "string" },
-    "dataCollectionRuleImmutableId": { "type": "string" }
+      "defaultValue": "https://console.stg.cyolo.io/v1/activity_log?_count=2",
+      "metadata": {
+        "description": "Cyolo API endpoint"
+      }
+    }
   },
   "variables": {
-    "dataConnectorId": "CyoloDataConnector",
-    "logAnalyticsTableId": "CyoloTable_CL_CL",
-    "solutionVersion": "1.0.0"
+    "dataConnectorId": "CyoloRestApiPoller"
   },
   "resources": [
     {
@@ -28,8 +58,9 @@
       "kind": "RestApiPoller",
       "properties": {
         "connectorDefinitionName": "[variables('dataConnectorId')]",
+        "dataType": "CyoloActivity_CL",
         "dcrConfig": {
-          "streamName": "[variables('logAnalyticsTableId')]",
+          "streamName": "Custom-CyoloActivityLog",
           "dataCollectionEndpoint": "[parameters('dataCollectionEndpoint')]",
           "dataCollectionRuleImmutableId": "[parameters('dataCollectionRuleImmutableId')]"
         },
@@ -40,15 +71,19 @@
         },
         "request": {
           "apiEndpoint": "[parameters('apiEndpoint')]",
-          "httpMethod": "GET",
-          "headers": { "Accept": "application/json" },
           "rateLimitQPS": 10,
           "queryWindowInMin": 5,
-          "retryCount": 3,
-          "timeoutInSeconds": 60
+          "httpMethod": "GET",
+          "timeoutInSeconds": 60,
+          "headers": {
+            "Accept": "application/json"
+          }
         },
-        "response": { "eventsJsonPaths": ["$.data[*]"] },
-        "isActive": true
+        "response": {
+          "eventsJsonPaths": [
+            "$.data[*]"
+          ]
+        }
       }
     }
   ]

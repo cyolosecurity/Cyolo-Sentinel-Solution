@@ -1,0 +1,67 @@
+{
+  "name": "CyoloActivity_DCR",
+  "apiVersion": "2021-09-01-preview",
+  "type": "Microsoft.Insights/dataCollectionRules",
+  "location": "eastus",
+  "properties": {
+    "streamDeclarations": {
+      "Custom-CyoloActivityLog": {
+        "columns": [
+          { "name": "id", "type": "string", "description": "Event ID" },
+          { "name": "kind", "type": "string", "description": "Event kind" },
+          { "name": "timestamp", "type": "datetime", "description": "Event time (UTC)" },
+          { "name": "remote_address", "type": "string", "description": "Remote IP" },
+          { "name": "action", "type": "string", "description": "Action" },
+          { "name": "result", "type": "string", "description": "Result" },
+          { "name": "subject_id", "type": "string", "description": "Subject ID" },
+          { "name": "subject_name", "type": "string", "description": "Subject Name" },
+          { "name": "subject_kind", "type": "string", "description": "Subject Kind" },
+          { "name": "authority_kind", "type": "string", "description": "Authority Kind" },
+          { "name": "authority_id", "type": "string", "description": "Authority ID" },
+          { "name": "authority_name", "type": "string", "description": "Authority Name" },
+          { "name": "object_kind", "type": "string", "description": "Object Kind" },
+          { "name": "object_id", "type": "string", "description": "Object ID" },
+          { "name": "object_name", "type": "string", "description": "Object Name" },
+          { "name": "session_id", "type": "string", "description": "Session ID" },
+          { "name": "message", "type": "string", "description": "Message" },
+          { "name": "node_id", "type": "string", "description": "Node ID" },
+          { "name": "client", "type": "string", "description": "Client Info" },
+          { "name": "data", "type": "dynamic", "description": "Additional Data" },
+          { "name": "rules", "type": "dynamic", "description": "Rules Info" },
+          { "name": "country_code", "type": "string", "description": "Country Code" },
+          { "name": "hostname", "type": "string", "description": "Hostname" },
+          { "name": "transaction_id", "type": "string", "description": "Transaction ID" },
+          { "name": "event_id", "type": "string", "description": "Event Numeric ID" },
+          { "name": "severity", "type": "string", "description": "Severity" },
+          { "name": "site_id", "type": "string", "description": "Site ID" },
+          { "name": "site_name", "type": "string", "description": "Site Name" },
+          { "name": "credentials_origin", "type": "string", "description": "Credentials Origin" },
+          { "name": "credentials_id", "type": "string", "description": "Credentials ID" },
+          { "name": "credentials_name", "type": "string", "description": "Credentials Name" },
+          { "name": "destination_host", "type": "string", "description": "Destination Host" },
+          { "name": "destination_port", "type": "string", "description": "Destination Port" }
+        ]
+      }
+    },
+    "destinations": {
+      "logAnalytics": [
+        {
+          "workspaceResourceId": "/subscriptions/ad5de96e-0ef7-4df4-9344-c32a031bba30/resourceGroups/cyolo-sentinal-02/providers/Microsoft.OperationalInsights/workspaces/CyoloLogAnalyticsWorkspace",
+          "name": "CyoloLogAnalyticsWorkspace"
+        }
+      ]
+    },
+    "dataFlows": [
+      {
+        "streams": [
+          "Custom-CyoloActivityLog"
+        ],
+        "destinations": [
+          "CyoloLogAnalyticsWorkspace"
+        ],
+        "transformKql": "source | extend TimeGenerated = todatetime(timestamp) | project TimeGenerated, id, timestamp, remote_address, action, result, subject_id, subject_name, subject_kind, authority_kind, authority_id, authority_name, object_kind, object_id, object_name, session_id, message, node_id, client, data, rules, country_code, hostname, transaction_id, event_id, severity, site_id, site_name, credentials_origin, credentials_id, credentials_name, destination_host, destination_port",
+        "outputStream": "Custom-CyoloActivity_CL"
+      }
+    ]
+  }
+}

@@ -9,6 +9,11 @@
   "contentItems": [
     {
       "type": "DataConnector",
+      "path": "Solutions/Cyolo/Data Connectors/CyoloDataConnectorDefinition.json",
+      "id": "CyoloDataConnectorDefinition"
+    },
+    {
+      "type": "DataConnector",
       "path": "Solutions/Cyolo/Data Connectors/CyoloDataConnector.json",
       "id": "CyoloDataConnector"
     },
