@@ -4,8 +4,9 @@
   "type": "Microsoft.Insights/dataCollectionRules",
   "location": "eastus",
   "properties": {
+    "dataCollectionEndpointId": "/subscriptions/ad5de96e-0ef7-4df4-9344-c32a031bba30/resourceGroups/Cyolo-Sentinel-Solution/providers/Microsoft.Insights/dataCollectionEndpoints/Cyolo-Sentinel-DCE",
     "streamDeclarations": {
-      "Custom-CyoloActivityLog": {
+      "Custom-Cyolo-Sentinel-DCR": {
         "columns": [
           { "name": "id", "type": "string", "description": "Event ID" },
           { "name": "kind", "type": "string", "description": "Event kind" },
@@ -46,20 +47,16 @@
     "destinations": {
       "logAnalytics": [
         {
-          "workspaceResourceId": "/subscriptions/ad5de96e-0ef7-4df4-9344-c32a031bba30/resourceGroups/cyolo-sentinal-02/providers/Microsoft.OperationalInsights/workspaces/CyoloLogAnalyticsWorkspace",
-          "name": "CyoloLogAnalyticsWorkspace"
+          "workspaceResourceId": "/subscriptions/ad5de96e-0ef7-4df4-9344-c32a031bba30/resourceGroups/Cyolo-Sentinel-Solution/providers/Microsoft.OperationalInsights/workspaces/Cyolo-Sentinel-Workspace",
+          "name": "Cyolo-Sentinel-Workspace"
         }
       ]
     },
     "dataFlows": [
       {
-        "streams": [
-          "Custom-CyoloActivityLog"
-        ],
-        "destinations": [
-          "CyoloLogAnalyticsWorkspace"
-        ],
-        "transformKql": "source | extend TimeGenerated = todatetime(timestamp) | project TimeGenerated, id, timestamp, remote_address, action, result, subject_id, subject_name, subject_kind, authority_kind, authority_id, authority_name, object_kind, object_id, object_name, session_id, message, node_id, client, data, rules, country_code, hostname, transaction_id, event_id, severity, site_id, site_name, credentials_origin, credentials_id, credentials_name, destination_host, destination_port",
+        "streams": ["Custom-Cyolo-Sentinel-DCR"],
+        "destinations": ["Cyolo-Sentinel-Workspace"],
+        "transformKql": "source \r\n| project-rename \r\n TimeGenerated=timestamp,eventKind=['kind'],ID=id,remoteAddress=remote_address,Action=action,Result=result,subjectId=subject_id,subjectName=subject_name,subjectKind=subject_kind,authorityKind=authority_kind,authorityId=authority_id,authorityName=authority_name,objectKind=object_kind,objectId=object_id,objectName=object_name,sessionId=session_id,Message=message,nodeId=node_id,Client=client,Data=data,Rules=rules,countryCode=country_code,HostName=hostname,transactionId=transaction_id,eventId=event_id,Severity=severity,siteId=site_id,siteName=site_name,credentialsOrigin=credentials_origin,credentialsId=credentials_id,credentialsName=credentials_name,destinationHost=destination_host,destinationPort=destination_port",
         "outputStream": "Custom-CyoloActivity_CL"
       }
     ]

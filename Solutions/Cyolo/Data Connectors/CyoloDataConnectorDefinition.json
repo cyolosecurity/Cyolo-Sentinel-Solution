@@ -21,24 +21,24 @@
           "title": "Cyolo Activity Connector (REST API Poller)",
           "publisher": "Cyolo",
           "descriptionMarkdown": "Ingest Cyolo activity logs into Microsoft Sentinel using the REST API Poller.",
-          "graphQueriesTableName": "CyoloTable_CL",
+          "graphQueriesTableName": "CyoloActivity_CL",
           "graphQueries": [
             {
               "metricName": "Total events received",
               "legend": "Cyolo Events",
-              "baseQuery": "CyoloTable_CL"
+              "baseQuery": "CyoloActivity_CL"
             }
           ],
           "sampleQueries": [
             {
               "description": "Get sample Cyolo activity logs",
-              "query": "CyoloTable_CL | take 10"
+              "query": "CyoloActivity_CL | take 10"
             }
           ],
           "dataTypes": [
             {
-              "name": "CyoloTable_CL",
-              "lastDataReceivedQuery": "CyoloTable_CL | summarize Time = max(TimeGenerated)"
+              "name": "CyoloActivity_CL",
+              "lastDataReceivedQuery": "CyoloActivity_CL | summarize Time = max(TimeGenerated)"
             }
           ],
           "connectivityCriteria": [

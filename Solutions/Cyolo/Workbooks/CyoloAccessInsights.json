@@ -6,7 +6,7 @@
       "content": {
         "json": {
           "title": "Cyolo \u2013 Top Accessed Applications",
-          "query": "CyoloTable_CL_CL | summarize count() by object_name | top 10 by count_",
+          "query": "CyoloActivity_CL | summarize count() by object_name | top 10 by count_",
           "queryType": 0
         }
       }

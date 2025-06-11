@@ -8,10 +8,10 @@
     {
       "type": "Microsoft.OperationalInsights/workspaces/tables",
       "apiVersion": "2022-10-01",
-      "name": "[concat(parameters('workspaceName'), '/CyoloActivity_CL')]",
+      "name": "[concat(parameters('workspaceName'), '/CyoloSentinelAuditTable_CL')]",
       "properties": {
         "schema": {
-          "name": "CyoloActivity_CL",
+          "name": "CyoloSentinelAuditTable_CL",
           "columns": [
             { "name": "TimeGenerated", "type": "datetime", "isDefaultDisplay": true, "description": "Event time (UTC)" },
             { "name": "eventKind", "type": "string", "description": "Event kind" },

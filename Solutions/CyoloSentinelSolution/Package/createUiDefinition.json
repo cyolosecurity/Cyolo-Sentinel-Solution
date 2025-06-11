@@ -1,0 +1,102 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "config": {
+      "isWizard": false,
+      "basics": {
+        "description": "<img src=\"https://via.placeholder.com/75\" alt=\"Cyolo Logo\" width=\"75px\" height=\"75px\">\n\n**Note:** Please review the following before installing the solution:\n\n• Refer to the [Cyolo Sentinel Solution Documentation](https://example.com/cyolo-sentinel-docs)\n\n• Check for [known issues](https://aka.ms/sentinelsolutionsknownissues) before installation.\n\nThe [Cyolo Sentinel Solution](https://example.com) data connector allows ingesting logs from the Cyolo IDAC API into Microsoft Sentinel. It uses the Cyolo IDAC API to fetch logs and supports DCR-based ingestion time transformations for parsing security data into custom tables.\n\n**Data Connectors:** 1\n\n[Learn more about Microsoft Sentinel](https://aka.ms/azuresentinel) | [Learn more about Solutions](https://aka.ms/azuresentinelsolutionsdoc)",
+        "subscription": {
+          "resourceProviders": [
+            "Microsoft.OperationsManagement/solutions",
+            "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "Microsoft.Insights/workbooks",
+            "Microsoft.Logic/workflows"
+          ]
+        },
+        "location": {
+          "metadata": {
+            "hidden": "Hiding location, we get it from the Log Analytics workspace"
+          },
+          "visible": false
+        },
+        "resourceGroup": {
+          "allowExisting": true
+        }
+      }
+    },
+    "basics": [
+      {
+        "name": "getLAWorkspace",
+        "type": "Microsoft.Solutions.ArmApiControl",
+        "toolTip": "This filters by workspaces that exist in the Resource Group selected",
+        "condition": "[greater(length(resourceGroup().name),0)]",
+        "request": {
+          "method": "GET",
+          "path": "[concat(subscription().id,'/providers/Microsoft.OperationalInsights/workspaces?api-version=2020-08-01')]"
+        }
+      },
+      {
+        "name": "workspace",
+        "type": "Microsoft.Common.DropDown",
+        "label": "Log Analytics Workspace",
+        "placeholder": "Select a workspace",
+        "toolTip": "This dropdown will list only workspaces that exist in the Resource Group selected",
+        "constraints": {
+          "allowedValues": "[map(filter(basics('getLAWorkspace').value, (filter) => contains(toLower(filter.id), toLower(resourceGroup().name))), (item) => parse(concat('{\"label\":\"', item.name, '\",\"value\":\"', item.name, '\"}')))]",
+          "required": true
+        },
+        "visible": true
+      }
+    ],
+    "steps": [
+      {
+        "name": "dataconnectors",
+        "label": "Cyolo Sentinel Solution Configuration",
+        "bladeTitle": "Configuration",
+        "elements": [
+          {
+            "name": "dataconnectors1-text",
+            "type": "Microsoft.Common.TextBlock",
+            "options": {
+              "text": "This Solution installs the data connector for Cyolo Sentinel Solution. You can get Cyolo IDAC data in your Microsoft Sentinel workspace. After installing the solution, configure and enable this data connector by following guidance in Manage solution view."
+            }
+          },
+          {
+            "name": "dataconnectors-link1",
+            "type": "Microsoft.Common.TextBlock",
+            "options": {
+              "link": {
+                "label": "Learn more about connecting data sources",
+                "uri": "https://docs.microsoft.com/azure/sentinel/connect-data-sources"
+              }
+            }
+          },
+          {
+            "name": "dataCollectionEndpointName",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Data Collection Endpoint Name",
+            "defaultValue": "CyoloDCE",
+            "toolTip": "Enter a unique name for the Data Collection Endpoint",
+            "constraints": {
+              "required": true,
+              "validations": [
+                {
+                  "regex": "^[a-zA-Z0-9][a-zA-Z0-9-]{2,61}[a-zA-Z0-9]$",
+                  "message": "Name must be 3-63 characters long and contain only letters, numbers, and hyphens."
+                }
+              ]
+            },
+            "visible": true
+          }
+        ]
+      }
+    ],
+    "outputs": {
+      "workspace-location": "[first(map(filter(basics('getLAWorkspace').value, (filter) => and(contains(toLower(filter.id), toLower(resourceGroup().name)),equals(filter.name,basics('workspace')))), (item) => item.location))]",
+      "workspace": "[basics('workspace')]",
+      "dataCollectionEndpointName": "[stepResult('dataconnectors', 'dataCollectionEndpointName')]"
+    }
+  }
+}

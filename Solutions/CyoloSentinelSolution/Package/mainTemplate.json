@@ -1,0 +1,597 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "author": "Cyolo.io",
+    "comments": "Solution template for Cyolo Sentinel CCP"
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Not used, but needed to pass arm-ttk test `Location-Should-Not-Be-Hardcoded`. We instead use the `workspace-location` which is derived from the LA workspace"
+      }
+    },
+    "workspace-location": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Region to deploy solution resources -- separate from location selection"
+      }
+    },
+    "workspace": {
+      "defaultValue": "",
+      "type": "string",
+      "metadata": {
+        "description": "Workspace name for Log Analytics where Microsoft Sentinel is setup"
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().name]",
+      "metadata": {
+        "description": "Resource group name where Microsoft Sentinel is setup"
+      }
+    },
+    "subscription": {
+      "type": "string",
+      "defaultValue": "[last(split(subscription().id, '/'))]",
+      "metadata": {
+        "description": "Subscription ID where Microsoft Sentinel is setup"
+      }
+    },
+    "dataCollectionEndpointName": {
+      "type": "string",
+      "defaultValue": "CyoloDCE",
+      "metadata": {
+        "description": "Name of the Data Collection Endpoint"
+      }
+    }
+  },
+  "variables": {
+    "_solutionName": "Cyolo Sentinel Solution",
+    "_solutionVersion": "1.0.0",
+    "solutionId": "azuresentinel.azure-sentinel-solution-cyolo",
+    "_solutionId": "[variables('solutionId')]",
+    "workspaceResourceId": "[resourceId('microsoft.OperationalInsights/Workspaces', parameters('workspace'))]",
+    "dataConnectorCCPVersion": "1.0.0",
+    "_dataConnectorContentIdConnectorDefinition1": "CyoloDataConnector",
+    "dataConnectorTemplateNameConnectorDefinition1": "[concat(parameters('workspace'),'-dc-',uniquestring(variables('_dataConnectorContentIdConnectorDefinition1')))]",
+    "_dataConnectorContentIdConnections1": "CyoloDataConnectorConnections",
+    "dataConnectorTemplateNameConnections1": "[concat(parameters('workspace'),'-dc-',uniquestring(variables('_dataConnectorContentIdConnections1')))]",
+    "blanks": "[replace('b', 'b', '')]",
+    "_solutioncontentProductId": "[concat(take(variables('_solutionId'),50),'-','sl','-', uniqueString(concat(variables('_solutionId'),'-','Solution','-',variables('_solutionId'),'-', variables('_solutionVersion'))))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+      "apiVersion": "2023-04-01-preview",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('dataConnectorTemplateNameConnectorDefinition1'), variables('dataConnectorCCPVersion'))]",
+      "location": "[parameters('workspace-location')]",
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]"
+      ],
+      "properties": {
+        "contentId": "[variables('_dataConnectorContentIdConnectorDefinition1')]",
+        "displayName": "Cyolo Sentinel Solution",
+        "contentKind": "DataConnector",
+        "mainTemplate": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "[variables('dataConnectorCCPVersion')]",
+          "parameters": {
+            "connectorDefinitionName": {
+              "defaultValue": "Cyolo Sentinel Solution",
+              "type": "secureString",
+              "minLength": 1
+            },
+            "workspace": {
+              "defaultValue": "[parameters('workspace')]",
+              "type": "secureString"
+            },
+            "apiUrl": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "Base API URL from Cyolo IDAC"
+              }
+            },
+            "apiId": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "API Key ID from Cyolo IDAC"
+              }
+            },
+            "apiToken": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "API Token from Cyolo IDAC"
+              }
+            }
+          },
+          "variables": {},
+          "resources": [
+            {
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',variables('_dataConnectorContentIdConnectorDefinition1'))]",
+              "apiVersion": "2022-09-01-preview",
+              "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectorDefinitions",
+              "location": "[parameters('workspace-location')]",
+              "kind": "Customizable",
+              "properties": {
+                "connectorUiConfig": {
+                  "id": "CyoloDataConnector",
+                  "title": "Cyolo Sentinel Solution",
+                  "publisher": "Cyolo.io",
+                  "descriptionMarkdown": "The Cyolo Sentinel Solution data connector allows ingesting logs from the Cyolo IDAC API into Microsoft Sentinel. The data connector is built on Microsoft Sentinel Codeless Connector Platform. It uses the Cyolo IDAC API to fetch logs and supports DCR-based ingestion time transformations.",
+                  "graphQueries": [
+                    {
+                      "metricName": "Total Analytics logs received",
+                      "legend": "Cyolo Analytics Logs",
+                      "baseQuery": "Custom-CyoloSentinelAnalyticsTable_CL"
+                    }
+                  ],
+                  "sampleQueries": [
+                    {
+                      "description": "Get Sample of Cyolo Analytics logs",
+                      "query": "Custom-CyoloSentinelAnalyticsTable_CL | take 10"
+                    }
+                  ],
+                  "dataTypes": [
+                    {
+                      "name": "Custom-CyoloSentinelAnalyticsTable_CL",
+                      "lastDataReceivedQuery": "Custom-CyoloSentinelAnalyticsTable_CL | where TimeGenerated > ago(12h) | summarize Time = max(TimeGenerated) | where isnotempty(Time)"
+                    },
+                    {
+                      "name": "Custom-CyoloSentinelAuditTable_CL",
+                      "lastDataReceivedQuery": "Custom-CyoloSentinelAuditTable_CL | where TimeGenerated > ago(12h) | summarize Time = max(TimeGenerated) | where isnotempty(Time)"
+                    }
+                  ],
+                  "connectivityCriteria": [
+                    {
+                      "type": "HasDataConnectors",
+                      "value": null
+                    }
+                  ],
+                  "availability": {
+                    "status": 1,
+                    "isPreview": false
+                  },
+                  "permissions": {
+                    "resourceProvider": [
+                      {
+                        "provider": "Microsoft.OperationalInsights/workspaces",
+                        "permissionsDisplayText": "Read and Write permissions are required.",
+                        "providerDisplayName": "Workspace",
+                        "scope": "Workspace",
+                        "requiredPermissions": {
+                          "read": true,
+                          "write": true,
+                          "delete": true,
+                          "action": false
+                        }
+                      }
+                    ]
+                  },
+                  "instructionSteps": [
+                    {
+                      "instructions": [
+                        {
+                          "type": "Markdown",
+                          "parameters": {
+                            "content": "#### Configuration steps for the Cyolo IDAC API\nFollow the instructions to obtain the credentials."
+                          }
+                        },
+                        {
+                          "type": "Markdown",
+                          "parameters": {
+                            "content": "#### 1. Retrieve API URL\nLog in to the Cyolo IDAC Management Console, navigate to Settings > API, and copy the Base API URL."
+                          }
+                        },
+                        {
+                          "type": "Markdown",
+                          "parameters": {
+                            "content": "#### 2. Retrieve API Credentials\nLog in to the Cyolo IDAC Management Console, navigate to Settings > API Keys, generate a new key, and copy the API Key ID and Token."
+                          }
+                        },
+                        {
+                          "parameters": {
+                            "label": "Base API URL",
+                            "placeholder": "https://api.cyolo.example.com",
+                            "type": "text",
+                            "name": "apiUrl"
+                          },
+                          "type": "Textbox"
+                        },
+                        {
+                          "parameters": {
+                            "label": "API Key ID",
+                            "placeholder": "API ID",
+                            "type": "text",
+                            "name": "apiId"
+                          },
+                          "type": "Textbox"
+                        },
+                        {
+                          "type": "Textbox",
+                          "parameters": {
+                            "label": "API Token",
+                            "placeholder": "API Token",
+                            "type": "password",
+                            "name": "apiToken"
+                          }
+                        },
+                        {
+                          "parameters": {
+                            "label": "toggle",
+                            "name": "toggle"
+                          },
+                          "type": "ConnectionToggleButton"
+                        }
+                      ]
+                    }
+                  ],
+                  "isConnectivityCriteriasMatchSome": false
+                }
+              }
+            },
+            {
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('DataConnector-', variables('_dataConnectorContentIdConnectorDefinition1')))]",
+              "apiVersion": "2022-01-01-preview",
+              "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+              "properties": {
+                "parentId": "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/dataConnectorDefinitions', variables('_dataConnectorContentIdConnectorDefinition1'))]",
+                "contentId": "[variables('_dataConnectorContentIdConnectorDefinition1')]",
+                "kind": "DataConnector",
+                "version": "[variables('dataConnectorCCPVersion')]",
+                "source": {
+                  "sourceId": "[variables('_solutionId')]",
+                  "name": "[variables('_solutionName')]",
+                  "kind": "Solution"
+                },
+                "author": {
+                  "name": "Cyolo.io"
+                },
+                "support": {
+                  "name": "Cyolo.io Support",
+                  "email": "support@cyolo.io",
+                  "tier": "Cyolo.io",
+                  "link": "https://support.cyolo.io"
+                },
+                "dependencies": {
+                  "criteria": [
+                    {
+                      "version": "[variables('dataConnectorCCPVersion')]",
+                      "contentId": "[variables('_dataConnectorContentIdConnections1')]",
+                      "kind": "ResourcesDataConnector"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "CyoloActivity_DCR",
+              "apiVersion": "2022-06-01",
+              "type": "Microsoft.Insights/dataCollectionRules",
+              "location": "[parameters('workspace-location')]",
+              "kind": "[variables('blanks')]",
+              "properties": {
+                "streamDeclarations": {
+                  "Custom-CyoloSentinelAnalyticsTable_CL": {
+                    "columns": [
+                      { "name": "event_id", "type": "string" },
+                      { "name": "event_time", "type": "long" },
+                      { "name": "event_type", "type": "string" },
+                      { "name": "details", "type": "string" }
+                    ]
+                  },
+                  "Custom-CyoloSentinelAuditTable_CL": {
+                    "columns": [
+                      { "name": "audit_id", "type": "int" },
+                      { "name": "user_name", "type": "string" },
+                      { "name": "action", "type": "string" },
+                      { "name": "timestamp", "type": "long" }
+                    ]
+                  }
+                },
+                "destinations": {
+                  "logAnalytics": [
+                    {
+                      "workspaceResourceId": "[variables('workspaceResourceId')]",
+                      "name": "clv2ws1"
+                    }
+                  ]
+                },
+                "dataFlows": [
+                  {
+                    "streams": ["Custom-CyoloSentinelAnalyticsTable_CL"],
+                    "destinations": ["clv2ws1"],
+                    "transformKql": "source | project TimeGenerated = now(), EventId = event_id, EventTime = datetime(1970-01-01) + (event_time * 1ms), EventType = event_type, Details = details",
+                    "outputStream": "Custom-CyoloSentinelAnalyticsTable_CL"
+                  },
+                  {
+                    "streams": ["Custom-CyoloSentinelAuditTable_CL"],
+                    "destinations": ["clv2ws1"],
+                    "transformKql": "source | project TimeGenerated = now(), AuditId = audit_id, UserName = user_name, Action = action, Timestamp = datetime(1970-01-01) + (timestamp * 1ms)",
+                    "outputStream": "Custom-CyoloSentinelAuditTable_CL"
+                  }
+                ],
+                "dataCollectionEndpointId": "[concat('/subscriptions/', parameters('subscription'), '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Insights/dataCollectionEndpoints/', parameters('dataCollectionEndpointName'))]"
+              }
+            },
+            {
+              "name": "Custom-CyoloSentinelAnalyticsTable_CL",
+              "apiVersion": "2022-10-01",
+              "type": "Microsoft.OperationalInsights/workspaces/tables",
+              "location": "[parameters('workspace-location')]",
+              "kind": null,
+              "properties": {
+                "schema": {
+                  "name": "Custom-CyoloSentinelAnalyticsTable_CL",
+                  "columns": [
+                    { "name": "TimeGenerated", "type": "datetime", "description": "The time when the record was generated" },
+                    { "name": "EventId", "type": "string", "description": "Unique identifier for the event" },
+                    { "name": "EventTime", "type": "datetime", "description": "The time the event occurred" },
+                    { "name": "EventType", "type": "string", "description": "Type of the event" },
+                    { "name": "Details", "type": "string", "description": "Details of the event" }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Custom-CyoloSentinelAuditTable_CL",
+              "apiVersion": "2022-10-01",
+              "type": "Microsoft.OperationalInsights/workspaces/tables",
+              "location": "[parameters('workspace-location')]",
+              "kind": null,
+              "properties": {
+                "schema": {
+                  "name": "Custom-CyoloSentinelAuditTable_CL",
+                  "columns": [
+                    { "name": "TimeGenerated", "type": "datetime", "description": "The time when the record was generated" },
+                    { "name": "AuditId", "type": "int", "description": "Unique identifier for the audit event" },
+                    { "name": "UserName", "type": "string", "description": "Name of the user who initiated the audit" },
+                    { "name": "Action", "type": "string", "description": "Action performed in the audit" },
+                    { "name": "Timestamp", "type": "datetime", "description": "Time when the audit occurred" }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "packageKind": "Solution",
+        "packageVersion": "[variables('_solutionVersion')]",
+        "packageName": "[variables('_solutionName')]",
+        "contentProductId": "[concat(take(variables('_solutionId'), 50),'-','dc','-', uniqueString(concat(variables('_solutionId'),'-','DataConnector','-',variables('_dataConnectorContentIdConnectorDefinition1'),'-', variables('dataConnectorCCPVersion'))))]",
+        "packageId": "[variables('_solutionId')]",
+        "contentSchemaVersion": "3.0.0",
+        "version": "[variables('dataConnectorCCPVersion')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentTemplates",
+      "apiVersion": "2023-04-01-preview",
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('dataConnectorTemplateNameConnections1'), variables('dataConnectorCCPVersion'))]",
+      "location": "[parameters('workspace-location')]",
+      "dependsOn": [
+        "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/contentPackages', variables('_solutionId'))]",
+        "[resourceId('Microsoft.Insights/dataCollectionRules', 'CyoloActivity_DCR')]"
+      ],
+      "properties": {
+        "contentId": "[variables('_dataConnectorContentIdConnections1')]",
+        "displayName": "Cyolo Sentinel Solution",
+        "contentKind": "ResourcesDataConnector",
+        "mainTemplate": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "[variables('dataConnectorCCPVersion')]",
+          "parameters": {
+            "connectorDefinitionName": {
+              "defaultValue": "Cyolo Sentinel Solution",
+              "type": "secureString",
+              "minLength": 1
+            },
+            "workspace": {
+              "defaultValue": "[parameters('workspace')]",
+              "type": "secureString"
+            },
+            "dcrConfig": {
+              "defaultValue": {
+                "dataCollectionEndpoint": "[concat('/subscriptions/', parameters('subscription'), '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Insights/dataCollectionEndpoints/', parameters('dataCollectionEndpointName'))]",
+                "dataCollectionRuleImmutableId": "[reference('CyoloActivity_DCR', '2022-06-01').id]"
+              },
+              "type": "object"
+            },
+            "apiUrl": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "Base API URL from Cyolo IDAC"
+              }
+            },
+            "apiId": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "API Key ID from Cyolo IDAC"
+              }
+            },
+            "apiToken": {
+              "type": "secureString",
+              "minLength": 1,
+              "metadata": {
+                "description": "API Token from Cyolo IDAC"
+              }
+            }
+          },
+          "variables": {
+            "_dataConnectorContentIdConnections1": "[variables('_dataConnectorContentIdConnections1')]"
+          },
+          "resources": [
+            {
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/',concat('DataConnector-', variables('_dataConnectorContentIdConnections1')))]",
+              "apiVersion": "2022-01-01-preview",
+              "type": "Microsoft.OperationalInsights/workspaces/providers/metadata",
+              "properties": {
+                "parentId": "[extensionResourceId(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspace')), 'Microsoft.SecurityInsights/dataConnectors', variables('_dataConnectorContentIdConnections1'))]",
+                "contentId": "[variables('_dataConnectorContentIdConnections1')]",
+                "kind": "ResourcesDataConnector",
+                "version": "[variables('dataConnectorCCPVersion')]",
+                "source": {
+                  "sourceId": "[variables('_solutionId')]",
+                  "name": "[variables('_solutionName')]",
+                  "kind": "Solution"
+                },
+                "author": {
+                  "name": "Cyolo.io"
+                },
+                "support": {
+                  "name": "Cyolo.io Support",
+                  "email": "support@cyolo.io",
+                  "tier": "Cyolo.io",
+                  "link": "https://support.cyolo.io"
+                }
+              }
+            },
+            {
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', 'CyoloAnalytics')]",
+              "apiVersion": "2023-02-01-preview",
+              "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectors",
+              "location": "[parameters('workspace-location')]",
+              "kind": "RestApiPoller",
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/dataCollectionRules', 'CyoloActivity_DCR')]"
+              ],
+              "properties": {
+                "connectorDefinitionName": "CyoloDataConnector",
+                "dataType": "Custom-CyoloSentinelAnalyticsTable_CL",
+                "auth": {
+                  "type": "Basic",
+                  "username": "[parameters('apiId')]",
+                  "password": "[parameters('apiToken')]"
+                },
+                "request": {
+                  "apiEndpoint": "[concat(parameters('apiUrl'), '/analytics')]",
+                  "headers": {
+                    "Accept": "application/json",
+                    "User-Agent": "Scuba"
+                  },
+                  "httpMethod": "Get",
+                  "queryWindowInMin": 5,
+                  "logResponseContent": true
+                },
+                "response": {
+                  "eventsJsonPaths": ["$.data"]
+                },
+                "dcrConfig": {
+                  "streamName": "Custom-CyoloSentinelAnalyticsTable_CL",
+                  "dataCollectionEndpoint": "[parameters('dcrConfig').dataCollectionEndpoint]",
+                  "dataCollectionRuleImmutableId": "[parameters('dcrConfig').dataCollectionRuleImmutableId]"
+                }
+              }
+            },
+            {
+              "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', 'CyoloAudit')]",
+              "apiVersion": "2023-02-01-preview",
+              "type": "Microsoft.OperationalInsights/workspaces/providers/dataConnectors",
+              "location": "[parameters('workspace-location')]",
+              "kind": "RestApiPoller",
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/dataCollectionRules', 'CyoloActivity_DCR')]"
+              ],
+              "properties": {
+                "connectorDefinitionName": "CyoloDataConnector",
+                "dataType": "Custom-CyoloSentinelAuditTable_CL",
+                "auth": {
+                  "type": "Basic",
+                  "username": "[parameters('apiId')]",
+                  "password": "[parameters('apiToken')]"
+                },
+                "request": {
+                  "apiEndpoint": "[concat(parameters('apiUrl'), '/audit')]",
+                  "headers": {
+                    "Accept": "application/json",
+                    "User-Agent": "Scuba"
+                  },
+                  "httpMethod": "Get",
+                  "queryWindowInMin": 5,
+                  "logResponseContent": true
+                },
+                "response": {
+                  "eventsJsonPaths": ["$.data"]
+                },
+                "dcrConfig": {
+                  "streamName": "Custom-CyoloSentinelAuditTable_CL",
+                  "dataCollectionEndpoint": "[parameters('dcrConfig').dataCollectionEndpoint]",
+                  "dataCollectionRuleImmutableId": "[parameters('dcrConfig').dataCollectionRuleImmutableId]"
+                }
+              }
+            }
+          ]
+        },
+        "packageKind": "Solution",
+        "packageVersion": "[variables('_solutionVersion')]",
+        "packageName": "[variables('_solutionName')]",
+        "contentProductId": "[concat(take(variables('_solutionId'), 50),'-','rdc','-', uniqueString(concat(variables('_solutionId'),'-','ResourcesDataConnector','-',variables('_dataConnectorContentIdConnections1'),'-', variables('dataConnectorCCPVersion'))))]",
+        "packageId": "[variables('_solutionId')]",
+        "contentSchemaVersion": "3.0.0",
+        "version": "[variables('dataConnectorCCPVersion')]"
+      }
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces/providers/contentPackages",
+      "apiVersion": "2023-04-01-preview",
+      "location": "[parameters('workspace-location')]",
+      "properties": {
+        "version": "[variables('_solutionVersion')]",
+        "kind": "Solution",
+        "contentSchemaVersion": "3.0.0",
+        "displayName": "Cyolo Sentinel CCP",
+        "publisherDisplayName": "Cyolo.io, Cyolo.io Corporation",
+        "descriptionHtml": "<p><strong>Note:</strong> Please refer to the solution documentation before installing.</p>\n<p>The <a href=\"https://docs.cyolo.com\">Cyolo Sentinel Solution</a> data connector allows ingesting logs from the Cyolo IDAC API into Microsoft Sentinel. It uses the Cyolo IDAC API to fetch analytics and audit logs and supports DCR-based ingestion time transformations.</p>\n<p><strong>Data Connectors:</strong> 2</p>\n<p><a href=\"https://aka.ms/azuresentinel\">Learn more about Microsoft Sentinel</a></p>",
+        "contentKind": "Solution",
+        "contentProductId": "[variables('_solutioncontentProductId')]",
+        "id": "[variables('_solutioncontentProductId')]",
+        "icon": "<img src=\"https://raw.githubusercontent.com/Cyolo.io/Cyolo-Sentinel/master/Logos/Cyolo_Logo.svg\" width=\"75px\" height=\"75px\">",
+        "contentId": "[variables('_solutionId')]",
+        "parentId": "[variables('_solutionId')]",
+        "source": {
+          "kind": "Solution",
+          "name": "Cyolo Sentinel CCP",
+          "sourceId": "[variables('_solutionId')]"
+        },
+        "author": {
+          "name": "Cyolo.io"
+        },
+        "support": {
+          "name": "Cyolo.io Support",
+          "email": "support@cyolo.io",
+          "tier": "Cyolo.io",
+          "link": "https://support.cyolo.io"
+        },
+        "dependencies": {
+          "operator": "AND",
+          "criteria": [
+            {
+              "kind": "DataConnector",
+              "contentId": "[variables('_dataConnectorContentIdConnections1')]",
+              "version": "[variables('dataConnectorCCPVersion')]"
+            }
+          ]
+        },
+        "firstPublishDate": "2025-06-11",
+        "providers": [
+          "Cyolo"
+        ],
+        "categories": {
+          "domains": [
+            "Security - Threat Protection"
+          ]
+        }
+      },
+      "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/', variables('_solutionId'))]"
+    }
+  ],
+  "outputs": {}
+}
